@@ -32,8 +32,12 @@ optparse = OptionParser.new do |opts|
 end
 optparse.parse!
 
-# Open Colloquy channel transcripts
-Dir.glob("#{options[:input_dir]}/*.colloquyTranscript").each do |filename|
+puts "Reading Colloquy logs from #{options[:input_dir]}"
+puts "Outputting Adium logs to #{options[:output_dir]}"
+puts ""
+
+# Open Colloquy transcripts
+Dir.glob("#{options[:input_dir]}/**/*.colloquyTranscript").each do |filename|
   parser = XML::Parser.file(filename)
   doc = parser.parse
   
@@ -51,18 +55,18 @@ Dir.glob("#{options[:input_dir]}/*.colloquyTranscript").each do |filename|
   newdoc.root['account'] = nickname
   newdoc.root['service'] = 'IRC'
   adium = newdoc.root
-
+  
   # Start
   adium << elem = XML::Node.new('event')
   elem['type'] = 'windowOpenened'
   elem['sender'] = nickname
   elem['time'] = Time.parse(doc.root['began']).iso8601
-
+  
   # Loop through each element
   doc.root.children.each do |element|
     case element.name
     when 'event'
-
+  
       # Left the room
       if element['name'] == 'parted'
         adium << event = XML::Node.new('event')
@@ -71,32 +75,28 @@ Dir.glob("#{options[:input_dir]}/*.colloquyTranscript").each do |filename|
         event['time'] = Time.parse(element['occurred']).iso8601
         next
       end
-
+  
       who = element.find('who')[0]
-
+  
       adium << status = XML::Node.new('status')
       status['time'] = Time.parse(element['occurred']).iso8601
       status << div = XML::Node.new('div')
-
+  
       # What kind of event?
       case element['name']
       when 'memberJoined'
         status['type'] = 'purple'
-        div << span = XML::Node.new('span')
-        span['style'] = 'font-family: Helvetica; font-size: 12pt';
-        span << "#{who.content} ["
-        span << italic = XML::Node.new('span', who['hostmask'])
+        div << "#{who.content} ["
+        div << italic = XML::Node.new('span', who['hostmask'])
         italic['style'] = 'font-style: italic;'
-        span << "] entered the room."
+        div << "] entered the room."
       when 'memberParted'
         status['type'] = 'purple'
-        div << span = XML::Node.new('span')
-        span['style'] = 'font-family: Helvetica; font-size: 12pt';
         reason = element.find('reason')[0].content
-        if reason != ''
-          span << "#{who.content} left the room (#{reason})."
+        if reason.empty?
+          div << "#{who.content} left the room."
         else
-          span << "#{who.content} left the room."
+          div << "#{who.content} left the room (#{reason})."
         end
       when 'disconnected'
         status['type'] = 'disconnected'
@@ -106,7 +106,7 @@ Dir.glob("#{options[:input_dir]}/*.colloquyTranscript").each do |filename|
         status['type'] = 'connected'
         div << 'You have connected'
       end
-
+  
     when 'envelope'
       # envelopes contain multiple messages from the same sender
       sender = element.find('sender')[0].content
@@ -115,20 +115,16 @@ Dir.glob("#{options[:input_dir]}/*.colloquyTranscript").each do |filename|
         msg['sender'] = sender
         msg['time'] = Time.parse(message['received']).iso8601
         msg << div = XML::Node.new('div')
-        div << span = XML::Node.new('span')
-        span['style'] = 'font-family: Helvetica; font-size: 12pt';
-        span << XML::Node.new_text(message.content)
+        div << XML::Node.new_text(message.content)
       end
     end
   end
 
   # Construct filename
+  prefix = filename.split('/').last.split(' ')[0]
   begin_time = Time.parse(doc.root['began']).iso8601.reverse.gsub(':', '.').sub('.', '').reverse
-  if filename =~ /\#([\w]+) /i
-    channel = $1
-  end
-  output_file = "\##{channel} (#{begin_time}).chatlog"
-  output_path = "#{options[:output_dir]}/IRC.#{nickname}/\##{channel}"
+  output_file = "#{prefix} (#{begin_time}).chatlog"
+  output_path = "#{options[:output_dir]}/IRC.#{nickname}/#{prefix}"
   
   # Make directories if necessary
   Dir.mkdir(options[:output_dir]) if !File.directory?(options[:output_dir])
@@ -137,6 +133,9 @@ Dir.glob("#{options[:input_dir]}/*.colloquyTranscript").each do |filename|
   
   # Output the new logfile
   newdoc.save("#{output_path}/#{output_file}",  :indent => false)
-  #puts output_file
+  puts "Processed #{output_file}"
   
 end
+
+puts ""
+puts "Completed!"

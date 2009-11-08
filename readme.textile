@@ -1,14 +1,14 @@
-h2. Chat Log Converter Scripts
+h1. Chat Log Converter Scripts
 
 This is a collection of scripts for converting chat logs from one program to another.
 
 *Make sure you back up your logs before running any of these scripts!*
 
-h3. Colloquy to Adium
+h2. Colloquy to Adium
 
 The latest "Adium":http://beta.adium.im beta includes support for IRC and I wanted to convert my "Colloquy":http://colloquy.info/ transcripts so that I could view them in Adium.
 
-h4. Usage
+h3. Usage
 
 @ruby colloquy-to-adium.rb -n nickname@
 
