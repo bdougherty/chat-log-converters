@@ -92,11 +92,11 @@ Dir.glob("#{options[:input_dir]}/**/*.colloquyTranscript").each do |filename|
         div << "] entered the room."
       when 'memberParted'
         status['type'] = 'purple'
-        reason = element.find('reason')[0].content
-        if reason.empty?
+        reason = element.find('reason')[0]
+        if reason.nil?
           div << "#{who.content} left the room."
         else
-          div << "#{who.content} left the room (#{reason})."
+          div << "#{who.content} left the room (#{reason.content})."
         end
       when 'disconnected'
         status['type'] = 'disconnected'
